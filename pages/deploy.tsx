@@ -1,0 +1,104 @@
+import React from "react";
+import { ConnectWallet, useAddress, useSDK } from "@web3sdks/react";
+import { ContractType } from "@web3sdks/sdk";
+import styles from "../styles/Home.module.css";
+import {
+  contractsToShowOnDeploy as contracts,
+  contractTypeToDisplayNameMapping as nameMapping,
+  contractTypeToImageMapping as imageMapping,
+} from "../const/contractToDisplayMappings";
+import { useRouter } from "next/router";
+
+export default function Deploy() {
+  const router = useRouter();
+  const address = useAddress();
+  const sdk = useSDK();
+
+  // Function to deploy the proxy contract
+  async function deployContract(contractSelected: ContractType) {
+    if (!address || !sdk) {
+      return;
+    }
+
+    const contractAddress = await sdk.deployer.deployBuiltInContract(
+      // @ts-ignore - we're excluding custom contracts from the demo
+      contractSelected,
+      {
+        name: `My ${contractSelected}`,
+        primary_sale_recipient: address,
+        voting_token_address: address,
+        description: `My awesome ${contractSelected} contract`,
+        // Recipients are required when trying to deploy a split contract
+        recipients: [
+          {
+            address,
+            sharesBps: 100 * 100,
+          },
+        ],
+      }
+    );
+
+    // This is the contract address of the contract you just deployed
+    console.log(contractAddress);
+
+    alert(`Succesfully deployed ${contractSelected} at ${contractAddress}`);
+
+    router.push(`/`);
+  }
+
+  return (
+    <>
+      {/* Content */}
+      <div className={styles.container}>
+        {/* Top Section */}
+        <h1 className={styles.h1}>web3sdks Custom Dashboard</h1>
+        <p className={styles.explain}>
+          Learn how to dynamically create smart contracts using the web3sdks SDK
+          and view all of the contracts you&apos;ve created, similar to our{" "}
+          <b>
+            <a
+              href="https://web3sdks.com/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.purple}
+            >
+              web3sdks dashboard
+            </a>
+          </b>
+          .
+        </p>
+
+        <hr className={styles.divider} />
+
+        <h2>What do you want to deploy?</h2>
+        {!address ? (
+          <>
+            <p>
+              <b>Connect Your Wallet to deploy a contract</b>
+            </p>
+            <ConnectWallet accentColor="#F213A4" />
+          </>
+        ) : (
+          <>
+            <div className={styles.contractBoxGrid}>
+              {contracts.map((c) => (
+                <div
+                  className={styles.contractBox}
+                  key={c}
+                  onClick={() => deployContract(c as ContractType)}
+                >
+                  <div className={styles.contractImage}>
+                    <img src={imageMapping[c as ContractType]} alt={c} />
+                  </div>
+                  <b className={styles.cardName}>
+                    {nameMapping[c as ContractType]}
+                  </b>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
